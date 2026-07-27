@@ -1,0 +1,17 @@
+{
+  "name": "ecommerce-monorepo",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Convenience scripts for local (non-Docker) development. Each app (backend/frontend/admin) manages its own dependencies independently.",
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix admin",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:admin": "npm run dev --prefix admin",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
