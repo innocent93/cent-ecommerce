@@ -1,0 +1,63 @@
+# Render Blueprint — deploys all three services with the correct config in
+# one place. Import this at https://dashboard.render.com/blueprints
+# ("New +" -> "Blueprint", point it at your repo) instead of configuring
+# each service by hand, which is what caused the SPA-routing 404s and
+# missing env vars in earlier manual setups.
+#
+# The `routes: rewrite /* -> /index.html` on the static sites is the actual
+# fix for "visiting /collection directly (or refreshing) says Not Found":
+# without it, Render's static host looks for a literal file at that path
+# and 404s, instead of serving index.html and letting React Router handle
+# the route client-side (which is how every SPA client-side route works).
+services:
+  - type: web
+    name: urbanstep-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # Everything else (MONGO_URI, JWT_SECRET, PAYSTACK_*, SMTP_*, etc.)
+      # — set these in the Render dashboard from backend/.env.example.
+      # Deliberately not listed here with values: don't commit secrets to
+      # a file that lives in your repo.
+
+  - type: web
+    name: urbanstep-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://urbanstep-backend.onrender.com
+      - key: VITE_WHATSAPP_NUMBER
+        value: ""
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: ""
+
+  - type: web
+    name: urbanstep-admin
+    runtime: static
+    plan: free
+    rootDir: admin
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://urbanstep-backend.onrender.com
