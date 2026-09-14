@@ -7,7 +7,8 @@ A full-stack e-commerce system — Node/Express + MongoDB REST API (clean, servi
 ├── backend/            Express REST API — controllers → services → models
 ├── frontend/           Customer-facing React storefront (Vite), wired to the API
 ├── admin/              Admin panel (Vite) — products + order/tracking management
-├── docker-compose.yml  Full stack: mongo + backend + frontend + admin
+├── seller/             Seller dashboard (Vite) — marketplace vendors: products, orders, payouts
+├── docker-compose.yml  Full stack: mongo + backend + frontend + admin + seller
 └── BUSINESS_MODEL.md   How this makes money (read this before launch)
 ```
 
@@ -42,6 +43,7 @@ docker compose up --build
 - API: http://localhost:5000
 - Storefront: http://localhost:5173
 - Admin: http://localhost:5174
+- Seller dashboard: http://localhost:5175 (only meaningful if you're running the Option B marketplace zip — see `OPTION_B_README.md`)
 - Mongo data persists in the `mongo_data` volume.
 
 ## Quick start (local, no Docker)
@@ -61,6 +63,14 @@ docker build -t ecommerce-backend ./backend
 docker run -p 5000:5000 --env-file backend/.env ecommerce-backend
 ```
 `GET /healthz` (liveness) and `GET /readyz` (readiness — checks MongoDB) are provided for your platform's health checks.
+
+## Deploying to Render specifically
+
+`render.yaml` at the repo root is a ready-to-use [Render Blueprint](https://render.com/docs/blueprint-spec) covering all three services — import it at **Render Dashboard → New → Blueprint** instead of configuring each service by hand.
+
+Two real bugs this fixes, in case you hit them deploying manually instead:
+1. **Visiting a route directly (e.g. `/collection`) or refreshing the page says "Not Found"**: Render's static hosting looks for a literal file at that path by default and 404s, instead of serving `index.html` and letting React Router handle the route client-side (how every client-rendered SPA route actually works). Fixed via `frontend/public/_redirects` (and `admin/public/_redirects`) — already included — or the `routes: rewrite /* -> /index.html` block in `render.yaml` if you use the Blueprint.
+2. **Build fails / console errors about missing icons**: an earlier version of `Navbar.jsx`/`Collection.jsx` imported `react-icons` but the package was never actually used (the icons were commented out in favor of image assets) and wasn't even listed in `package.json` — a phantom dependency that only breaks in a clean install (like Render's build), not in a local dev environment that might still have a stale `node_modules`. Removed.
 
 ---
 
@@ -87,6 +97,20 @@ This app moves money, so session handling got specific attention:
 - **Timing-safe login**: a non-existent email still runs a dummy bcrypt compare, so response time doesn't leak which emails are registered.
 - **Cookies**: refresh token cookie is `httpOnly`, `sameSite=strict`, `secure` in production — inaccessible to JavaScript (mitigates XSS token theft) and not sent cross-site (mitigates CSRF).
 - Native/Flutter clients get the refresh token in the JSON body too (cookies don't work the same way for mobile HTTP clients) — store it with `flutter_secure_storage`, not plain `SharedPreferences`.
+
+## Google Login (free)
+
+Customers can sign in with their Google account instead of creating a password. This is entirely optional — leave `GOOGLE_CLIENT_ID`/`VITE_GOOGLE_CLIENT_ID` unset and the "Continue with Google" button simply doesn't render.
+
+**Getting a free Client ID (takes about 5 minutes, no cost):**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a project (or use an existing one) — free, no billing account required for this.
+2. Go to **APIs & Services → OAuth consent screen**. Choose "External," fill in the app name/support email, and publish it (or leave it in "Testing" mode while you develop — testing mode works fine for development but limits sign-ins to accounts you explicitly add as test users).
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**. Application type: **Web application**.
+4. Under **Authorized JavaScript origins**, add your storefront's URL(s): `http://localhost:5173` for local dev, and your real domain (e.g. `https://shop.example.com`) for production.
+5. Copy the generated **Client ID** (looks like `123456-abc.apps.googleusercontent.com`) — you don't need the client *secret* for this flow.
+6. Set it in **both**: `backend/.env` → `GOOGLE_CLIENT_ID=...` and `frontend/.env` → `VITE_GOOGLE_CLIENT_ID=...` (same value, both places — the frontend uses it to render Google's button, the backend uses it to verify the token Google returns actually came from *your* app, not someone else's).
+
+**How it works** (so you're not just trusting a black box): the frontend loads Google's own script and renders Google's official button — this app's code never sees the user's Google password. On click, Google gives the frontend a signed **ID token**, which is sent to `POST /api/user/google`. The backend verifies that token's signature directly with Google's servers before trusting anything in it (`user.service.js#googleLogin`) — this is the same OAuth pattern used by essentially every "Sign in with Google" implementation, not a shortcut. If the email from Google matches an existing password-based account, Google Sign-In is linked to it (safe, since Google already proved the person owns that email) rather than creating a confusing duplicate account; otherwise a new customer account is created with `isEmailVerified: true` (Google already verified it) and no password.
 
 ## Roles & permissions (RBAC)
 
@@ -203,6 +227,7 @@ Base URL: `{BACKEND_URL}`. All responses: `{ "success": true|false, "message": "
 |---|---|---|---|
 | POST | `/api/user/register` | – | `{ name, email, password }`. Password must be 8+ chars with an uppercase letter, lowercase letter, and symbol. Returns `token` (access) + `refreshToken` + `user`. Sends welcome + verification email. |
 | POST | `/api/user/login` | – | `{ email, password }`. Customers only — account locks after `MAX_LOGIN_ATTEMPTS` failures. |
+| POST | `/api/user/google` | – | `{ idToken }` (from Google Identity Services). Creates an account on first sign-in, or links to an existing one by email. |
 | POST | `/api/user/admin` | – | `{ email, password }`. Staff login (support/admin/superadmin) — same lockout policy. |
 | POST | `/api/user/refresh-token` | – | Rotates the refresh token, returns a new access token (role re-checked from the database). |
 | GET | `/api/user/me` | User/Staff | Current profile, including `role`. |
@@ -278,7 +303,23 @@ The original project had a number of bugs that would break in production; these 
 - **A stray `"server": "file:.."` dependency** in `frontend/`/`admin/` `package.json` would break isolated Docker builds. Removed.
 - **Fake/hardcoded frontend pages**: the original `Orders.jsx` rendered sample products with a hardcoded "25 July 2024" date instead of real orders, and `PlaceOrder.jsx` had a checkout form with no submit handler at all (the button just navigated to `/order` without placing anything). Both are now wired to the real API.
 
+## Further documentation
+
+| Doc | Covers |
+|---|---|
+| `ENGINEERING_REPORT.md` | Full audit, security/performance/SEO report, file-by-file changelog, production readiness score |
+| `BUSINESS_MODEL.md` | How the store owner makes money — single-seller vs. marketplace, and how to decide |
+| `MARKETPLACE_MIGRATION.md` | Concrete technical migration guide if/when you move to a multi-vendor marketplace (Option B) |
+| `SCALING.md` | What's already handled for high traffic, what's a config change away, and what's real engineering work — an honest answer to "will this handle N requests" |
+| `FREE_TIER_SERVICES.md` | Every external service this app uses and its free tier — get running at $0/month during development |
+| `MARKETING.md` | A practical, sequenced playbook for launching on Meta/Google ads without wasting your first budget |
+| `postman/` | A complete Postman collection (58 requests) + environment — see `postman/README.md` |
+| `backend/tests/README.md` | What's actually tested (and executed) vs. what's a documented next step |
+| `backend/docs/DATA_RESILIENCE.md` | Backup/restore runbook, restore-drill checklist, secrets-vault guidance, index review process |
+| `backend/load-test/checkout-race.k6.js` | Concurrency load test for the checkout/stock-decrement path — run before trusting any deployment under real traffic |
+| `legal/` | Draft Terms of Service, Privacy Policy, and Refund Policy — marketplace-aware, but **not lawyer-reviewed**; see `legal/README.md` before publishing |
+| `.github/workflows/` | CI (backend tests + frontend builds, per-PR) and CD (`deploy.yml` — tests/builds gate every deploy; see the file for enabling Render deploy hooks) |
+
 ## Notes
 
-- `uploads/` at the repo root is legacy sample data from the old disk-storage setup — the API no longer reads/writes it (all images go through Cloudinary). Safe to delete.
 - Read `BUSINESS_MODEL.md` before setting `COMMISSION_RATE` or deciding your delivery-fee numbers — those are business decisions this README intentionally doesn't make for you.
