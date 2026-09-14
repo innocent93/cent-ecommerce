@@ -1,0 +1,77 @@
+name: Deploy (production)
+
+# Deliberately re-verifies everything itself on every push to main, rather
+# than trying to chain onto the PR-time backend-ci/frontend-ci workflows
+# (GitHub Actions doesn't cleanly support "wait for N other workflows to
+# all succeed" without extra API calls) — a little redundant, but it means
+# this file is the complete, self-contained answer to "what has to pass
+# before we ship", and a broken merge to main can never deploy silently.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allows a manual "Run workflow" click for a hotfix redeploy
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: backend/package-lock.json }
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [frontend, admin, seller]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.app }}/package-lock.json'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+        env:
+          VITE_BACKEND_URL: https://example.com
+
+  deploy:
+    needs: [backend-test, frontend-build]
+    if: needs.backend-test.result == 'success' && needs.frontend-build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Render deploy hooks: Render Dashboard -> each service -> Settings ->
+      # "Deploy Hook" -> copy the URL into these repo secrets. Each hook is
+      # a plain POST with no body needed; a curl failure (non-2xx) fails
+      # this job loudly rather than deploying silently.
+      - name: Trigger backend deploy
+        if: ${{ vars.DEPLOY_BACKEND == 'true' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+
+      - name: Trigger storefront deploy
+        if: ${{ vars.DEPLOY_FRONTEND == 'true' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}"
+
+      - name: Trigger admin deploy
+        if: ${{ vars.DEPLOY_ADMIN == 'true' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_ADMIN }}"
+
+      - name: Trigger seller dashboard deploy
+        if: ${{ vars.DEPLOY_SELLER == 'true' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_SELLER }}"
+
+      - name: No deploy hooks configured yet
+        if: ${{ vars.DEPLOY_BACKEND != 'true' && vars.DEPLOY_FRONTEND != 'true' && vars.DEPLOY_ADMIN != 'true' && vars.DEPLOY_SELLER != 'true' }}
+        run: |
+          echo "Tests and builds passed, but no RENDER_DEPLOY_HOOK_* secrets/vars are configured yet."
+          echo "Add the deploy hook URL(s) as repo secrets and set the matching repo variable"
+          echo "(DEPLOY_BACKEND/DEPLOY_FRONTEND/DEPLOY_ADMIN/DEPLOY_SELLER) to 'true' to enable."

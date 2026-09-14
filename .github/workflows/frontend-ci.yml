@@ -1,0 +1,41 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', 'admin/**', 'seller/**']
+  pull_request:
+    paths: ['frontend/**', 'admin/**', 'seller/**']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [frontend, admin, seller]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        # A dummy backend URL is enough — this step only proves the app
+        # actually compiles (catches broken imports/JSX/Tailwind config
+        # before merge), not that it works against a live API.
+        run: npm run build
+        env:
+          VITE_BACKEND_URL: https://example.com
