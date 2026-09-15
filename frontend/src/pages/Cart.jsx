@@ -50,7 +50,7 @@ const Cart = () =>
                   </div>
                 </div>
               </div>
-              <input onChange={(e)=> e.target.value === '' || e.target.value === '0' ? null : updateQuantity(item._id,item.size,Number(e.target.value))} type="number" min={1} defaultValue={item.quantity} className="border max-w-10 sm;max-w-20 px-1 sm:px-2 py-1" />
+              <div className="inline-flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white" aria-label={`Quantity for ${productData.name}`}><button type="button" aria-label="Decrease quantity" onClick={()=>updateQuantity(item._id,item.size,Math.max(1,item.quantity-1))} className="grid h-9 w-9 place-items-center text-lg font-bold text-slate-700 hover:bg-slate-50">−</button><span className="grid h-9 min-w-9 place-items-center border-x border-slate-200 px-2 text-sm font-bold">{item.quantity}</span><button type="button" aria-label="Increase quantity" onClick={()=>updateQuantity(item._id,item.size,item.quantity+1)} className="grid h-9 w-9 place-items-center text-lg font-bold text-slate-700 hover:bg-slate-50">+</button></div>
               <img onClick={()=> updateQuantity(item._id,item.size,0)} src={assets.bin_icon} className="w-4 mr-4 sm:w-5 cursor-pointer" alt="" />
             </div>
           )

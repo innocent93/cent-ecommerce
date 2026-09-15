@@ -42,12 +42,12 @@ const send = async ({ to, subject, html }) => {
     return { sent: false, disabled: true };
   }
   try {
-    await retryWithBackoff(() => sendViaResend({ to, subject, html }));
-    logger.info({ to, subject, provider: 'resend' }, 'Email sent');
-    return { sent: true };
+    const result = await retryWithBackoff(() => sendViaResend({ to, subject, html }));
+    logger.info({ to, subject, provider: 'resend', resendId: result?.id || null }, 'Email sent');
+    return { sent: true, id: result?.id || null };
   } catch (err) {
-    logger.error({ err, to, subject, provider: 'resend' }, 'Failed to send email');
-    return { sent: false, error: err.message };
+    logger.error({ err: { message: err.message, status: err.status, cause: err.cause }, to, subject, provider: 'resend' }, 'Failed to send email via Resend');
+    return { sent: false, error: err.message, status: err.status || 502 };
   }
 };
 

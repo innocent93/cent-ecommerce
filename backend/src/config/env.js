@@ -121,10 +121,9 @@ try {
     cookieDomain: required('COOKIE_DOMAIN', { optional: true, fallback: '' }),
 
     // --- Transactional email --------------------------------------------
-    // Works with any SMTP provider (SendGrid, Mailgun, Postmark, Resend's
-    // SMTP relay, Gmail SMTP for local dev, etc.) — no vendor lock-in. If
-    // SMTP_HOST is unset, email sending is a no-op (logged, not sent) so the
-    // app runs fine without it in development.
+    // Transactional email is sent through the Resend HTTP API. EMAIL_FROM_ADDRESS
+    // must be a sender/domain verified in the Resend dashboard; a placeholder
+    // such as no-reply@example.com will be rejected by Resend in production.
     email: {
       provider: 'resend',
       enabled: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM_ADDRESS),

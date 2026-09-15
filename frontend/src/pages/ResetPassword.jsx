@@ -1,87 +1,56 @@
-// @ts-nocheck
 import React, { useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { ArrowRight, CheckCircle2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import api from '../utils/api'
 import { toast } from 'react-toastify'
 import PasswordStrength, { isPasswordValid } from '../components/PasswordStrength'
 
-const ResetPassword = () => {
-  const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') || ''
+export default function ResetPassword() {
+  const [params] = useSearchParams()
+  const token = params.get('token') || ''
   const navigate = useNavigate()
-
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [show, setShow] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const valid = isPasswordValid(password)
+  const matches = confirmPassword.length > 0 && password === confirmPassword
 
-  const passwordMeetsPolicy = isPasswordValid(password)
-  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    if (!token) {
-      toast.error('This reset link is missing its token — please use the link from your email.')
-      return
-    }
-    if (!passwordMeetsPolicy) {
-      toast.error('Password must be at least 8 characters with an uppercase letter, a lowercase letter, and a symbol')
-      return
-    }
-    if (!passwordsMatch) {
-      toast.error('Passwords do not match')
-      return
-    }
-
+  async function submit(event) {
+    event.preventDefault()
+    if (!token) return toast.error('This reset link is missing its token. Please request a new link.')
+    if (!valid) return toast.error('Use at least 8 characters with uppercase, lowercase and a symbol.')
+    if (!matches) return toast.error('Passwords do not match.')
     setSubmitting(true)
     try {
       const { data } = await api.post('/api/user/reset-password', { token, password })
-      if (data.success) {
-        toast.success('Password reset successfully — please log in.')
-        navigate('/login')
-      }
+      if (!data.success) throw new Error(data.message || 'Unable to reset password')
+      toast.success('Password reset successfully. Please sign in.')
+      navigate('/login')
     } catch (error) {
-      toast.error(error.response?.data?.message || 'This reset link is invalid or has expired')
-    } finally {
-      setSubmitting(false)
-    }
+      toast.error(error.response?.data?.message || error.message || 'This reset link is invalid or expired.')
+    } finally { setSubmitting(false) }
   }
 
-  return (
-    <form onSubmit={onSubmit} className='flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800'>
-      <div className='inline-flex items-center gap-2 mb-2 mt-10'>
-        <p className='text-3xl'>Set New Password</p>
-        <hr className='border-none h-[1.5px] w-8 bg-gray-800' />
-      </div>
-
-      <input
-        className={`w-full px-3 py-2 border ${password ? (passwordMeetsPolicy ? 'border-green-500' : 'border-gray-800') : 'border-gray-800'}`}
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder='New password'
-        required
-      />
-      <PasswordStrength password={password} />
-
-      <input
-        className={`w-full px-3 py-2 border ${passwordsMatch ? 'border-green-500' : 'border-gray-800'}`}
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        placeholder='Confirm new password'
-        required
-      />
-      {confirmPassword.length > 0 && (
-        <p className={`w-full text-xs -mt-2 ${passwordsMatch ? 'text-green-600' : 'text-red-500'}`}>
-          {passwordsMatch ? '\u2713 Passwords match' : 'Passwords do not match'}
-        </p>
-      )}
-
-      <button disabled={submitting} className='bg-black text-white font-light px-8 py-2 mt-4 disabled:opacity-50 w-full'>
-        {submitting ? 'Saving...' : 'Reset Password'}
-      </button>
-    </form>
-  )
+  return <main className="us-shell grid min-h-[calc(100vh-76px)] items-center gap-10 py-10 lg:grid-cols-[1.05fr_.95fr]">
+    <section className="hidden overflow-hidden rounded-[32px] bg-[#142b91] p-10 text-white lg:block">
+      <div className="mb-20 flex items-center gap-2 text-sm font-semibold text-blue-100"><ShieldCheck size={18}/> UrbanStep account security</div>
+      <h1 className="max-w-lg text-5xl font-extrabold leading-[1.05]">A safer account starts with a stronger password.</h1>
+      <p className="mt-5 max-w-md text-blue-100">Create a new password and get back to discovering fashion from trusted independent sellers.</p>
+      <div className="mt-12 space-y-4 text-sm text-blue-50"><p className="flex items-center gap-3"><CheckCircle2 size={18}/> Secure password recovery</p><p className="flex items-center gap-3"><CheckCircle2 size={18}/> One account across UrbanStep</p><p className="flex items-center gap-3"><CheckCircle2 size={18}/> Your shopping journey stays yours</p></div>
+    </section>
+    <section className="us-panel mx-auto w-full max-w-xl p-6 sm:p-10">
+      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] text-[#2446e8]">UrbanStep account</span>
+      <h2 className="mt-4 text-3xl font-extrabold tracking-tight">Set a new password</h2>
+      <p className="mt-2 text-sm text-slate-500">Choose a strong password you have not used before.</p>
+      <form onSubmit={submit} className="mt-8 space-y-4">
+        <label className="block text-sm font-semibold">New password<div className="relative mt-2"><input className="us-input pr-12" type={show ? 'text' : 'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your new password" required/><button type="button" onClick={()=>setShow(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" aria-label={show?'Hide password':'Show password'}>{show?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>
+        <PasswordStrength password={password}/>
+        <label className="block text-sm font-semibold">Confirm new password<input className="us-input mt-2" type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Repeat your new password" required/></label>
+        {confirmPassword && <p className={`text-xs ${matches?'text-emerald-600':'text-rose-600'}`}>{matches?'✓ Passwords match':'Passwords do not match'}</p>}
+        <button disabled={submitting} className="us-button us-button-primary w-full disabled:cursor-not-allowed disabled:opacity-60">{submitting?'Saving…':'Reset password'}<ArrowRight size={18}/></button>
+      </form>
+      <p className="mt-7 text-center text-sm text-slate-500"><Link to="/login" className="font-bold text-[#2446e8]">Back to sign in</Link></p>
+    </section>
+  </main>
 }
-
-export default ResetPassword

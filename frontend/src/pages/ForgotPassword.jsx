@@ -1,52 +1,14 @@
-// @ts-nocheck
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, CheckCircle2, Mail, ShieldCheck } from 'lucide-react'
 import api from '../utils/api'
 import { toast } from 'react-toastify'
 
-const ForgotPassword = () => {
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [sent, setSent] = useState(false)
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      const { data } = await api.post('/api/user/forgot-password', { email })
-      if (data.success) {
-        setSent(true)
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Something went wrong')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  if (sent) {
-    return (
-      <div className='flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800 text-center'>
-        <p className='text-3xl'>Check your email</p>
-        <p className='text-gray-500 text-sm'>
-          If an account exists for <b>{email}</b>, we've sent a link to reset your password. It expires in 1 hour.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={onSubmit} className='flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800'>
-      <div className='inline-flex items-center gap-2 mb-2 mt-10'>
-        <p className='text-3xl'>Reset Password</p>
-        <hr className='border-none h-[1.5px] w-8 bg-gray-800' />
-      </div>
-      <p className='text-gray-500 text-sm text-center'>Enter your email and we'll send you a link to reset your password.</p>
-      <input className='w-full px-3 py-2 border border-gray-800' type="email" placeholder='Email' value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <button disabled={submitting} className='bg-black text-white font-light px-8 py-2 mt-4 disabled:opacity-50 w-full'>
-        {submitting ? 'Sending...' : 'Send Reset Link'}
-      </button>
-    </form>
-  )
+export default function ForgotPassword() {
+  const [email,setEmail]=useState(''); const [submitting,setSubmitting]=useState(false); const [sent,setSent]=useState(false)
+  async function submit(e){e.preventDefault();setSubmitting(true);try{const {data}=await api.post('/api/user/forgot-password',{email});if(!data.success)throw new Error(data.message||'Unable to send reset link');setSent(true)}catch(err){toast.error(err.response?.data?.message||err.message||'Unable to send reset link')}finally{setSubmitting(false)}}
+  return <main className="us-shell grid min-h-[calc(100vh-76px)] items-center gap-10 py-10 lg:grid-cols-[1.05fr_.95fr]">
+    <section className="hidden overflow-hidden rounded-[32px] bg-[#142b91] p-10 text-white lg:block"><div className="mb-20 flex items-center gap-2 text-sm font-semibold text-blue-100"><ShieldCheck size={18}/> UrbanStep account security</div><h1 className="max-w-lg text-5xl font-extrabold leading-[1.05]">We’ll help you get back in.</h1><p className="mt-5 max-w-md text-blue-100">Request a secure password-reset link for your UrbanStep account.</p><div className="mt-12 space-y-4 text-sm text-blue-50"><p className="flex items-center gap-3"><CheckCircle2 size={18}/> Secure recovery link</p><p className="flex items-center gap-3"><CheckCircle2 size={18}/> No password shared by email</p></div></section>
+    <section className="us-panel mx-auto w-full max-w-xl p-6 sm:p-10"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] text-[#2446e8]">UrbanStep account</span><h2 className="mt-4 text-3xl font-extrabold tracking-tight">Forgot your password?</h2>{sent?<div className="mt-8 rounded-2xl bg-blue-50 p-5 text-sm text-slate-700"><Mail className="mb-3 text-[#2446e8]" size={24}/><p className="font-bold">Check your inbox</p><p className="mt-2">If an account exists for <strong>{email}</strong>, we sent a reset link. Check spam too.</p></div>:<><p className="mt-2 text-sm text-slate-500">Enter your email and we’ll send you a secure reset link.</p><form onSubmit={submit} className="mt-8 space-y-4"><label className="block text-sm font-semibold">Email address<input className="us-input mt-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required/></label><button disabled={submitting} className="us-button us-button-primary w-full disabled:opacity-60">{submitting?'Sending…':'Send reset link'}<ArrowRight size={18}/></button></form></>}<p className="mt-7 text-center text-sm text-slate-500"><Link to="/login" className="font-bold text-[#2446e8]">Back to sign in</Link></p></section>
+  </main>
 }
-
-export default ForgotPassword
