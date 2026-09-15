@@ -24,6 +24,8 @@ export const sellerAuth = asyncHandler(async (req, res, next) => {
   if (!seller) {
     throw ApiError.unauthorized('Not authorized, please login again');
   }
+  if (seller.deletedAt) throw ApiError.forbidden('This seller account is archived. Contact support.');
+  if (seller.ban?.isBanned && (!seller.ban.expiresAt || seller.ban.expiresAt > new Date())) throw ApiError.forbidden('Your seller account has been banned. Contact support.');
   if (seller.status === 'suspended') {
     throw ApiError.forbidden('Your seller account has been suspended. Contact support.');
   }

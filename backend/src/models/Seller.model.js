@@ -41,6 +41,10 @@ const sellerSchema = new mongoose.Schema(
     },
     isEmailVerified: { type: Boolean, default: false },
     phone: { type: String, trim: true },
+    businessCertificate: { url: String, publicId: String, originalName: String, mimeType: String, uploadedAt: Date },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    ban: { isBanned: { type: Boolean, default: false, index: true }, reason: { type: String, trim: true, maxlength: 500 }, expiresAt: { type: Date, default: null }, bannedAt: { type: Date, default: null }, bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null } },
 
     // A seller can't list products until an admin approves them (fraud/
     // quality control) — mirrors the existing refund-approval-queue pattern

@@ -8,6 +8,8 @@ const Profile = ({ seller, onSellerUpdated }) => {
   const [bankCode, setBankCode] = useState("");
   const [accountName, setAccountName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [certificate, setCertificate] = useState(null);
+  const [uploadingCertificate, setUploadingCertificate] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +34,16 @@ const Profile = ({ seller, onSellerUpdated }) => {
       <h1 className="font-display text-2xl text-ink-500">Business profile</h1>
       <p className="mt-1 text-sm text-muted">Your account details and where payouts are sent.</p>
 
+      <div className="mt-6 panel p-6">
+        <h2 className="font-display text-lg text-ink-500">Business verification</h2>
+        <p className="mt-1 text-sm text-muted">Upload your CAC/business certificate. UrbanStep must approve it before you can sell.</p>
+        <div className="mt-4 rounded border border-ink-100 bg-paper p-4 text-sm">
+          <div className="flex items-center justify-between gap-3"><span>Current document</span>{seller?.certificate?.url ? <a href={seller.certificate.url} target="_blank" rel="noreferrer" className="underline">View certificate</a> : <span className="text-muted">Not uploaded</span>}</div>
+          <input className="field-input mt-4" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/avif" onChange={(e)=>setCertificate(e.target.files?.[0]||null)} />
+          <button type="button" disabled={!certificate||uploadingCertificate} onClick={async()=>{ if(certificate.size>5*1024*1024){toast.error("Certificate must be 5MB or smaller");return;} setUploadingCertificate(true); try{const fd=new FormData();fd.append("businessCertificate",certificate);const {data}=await api.post("/api/seller/business-certificate",fd,{headers:{"Content-Type":"multipart/form-data"}}); if(data.success){toast.success("Certificate uploaded");onSellerUpdated(data.seller);setCertificate(null)}}catch(error){toast.error(error.response?.data?.message||"Upload failed")}finally{setUploadingCertificate(false)}}} className="btn-ochre mt-3">{uploadingCertificate?"Uploading…":"Upload certificate"}</button>
+          <p className="mt-2 text-xs text-muted">PDF/JPG/PNG/WEBP · maximum 5MB.</p>
+        </div>
+      </div>
       <div className="mt-6 panel p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-ink-500">{seller?.businessName}</h2>

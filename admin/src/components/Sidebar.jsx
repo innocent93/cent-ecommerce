@@ -1,40 +1,5 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
-import { assets } from '../frontend_assets/assets'
-
-const Sidebar = ({ isSuperAdmin }) => {
-  return (
-    <div className='w-[18%] min-h-screen border-r-2'>
-          <div className='flex flex-col gap-4 pt-6 pl-[20%] text-[15px]'>
-              <NavLink to='/add' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                  <img className='w-5 h-5' src={assets.bin_icon} alt="" />
-                  <p className='hidden md:block'>Add items</p>
-              </NavLink>
-              <NavLink to='/list' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                  <img className='w-5 h-5' src={assets.star_icon} alt="" />
-                  <p className='hidden md:block'>List items</p>
-              </NavLink>
-              <NavLink to='/orders' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                  <img className='w-5 h-5' src={assets.star_icon} alt="" />
-                  <p className='hidden md:block'>Orders</p>
-              </NavLink>
-              <NavLink to='/refunds' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                  <img className='w-5 h-5' src={assets.star_icon} alt="" />
-                  <p className='hidden md:block'>Refunds</p>
-              </NavLink>
-              <NavLink to='/coupons' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                  <img className='w-5 h-5' src={assets.star_icon} alt="" />
-                  <p className='hidden md:block'>Coupons</p>
-              </NavLink>
-              {isSuperAdmin && (
-                <NavLink to='/staff' className={'flex items-center gap-3 border border-gray-300 px-3 py-2 rounded-l'} >
-                    <img className='w-5 h-5' src={assets.star_icon} alt="" />
-                    <p className='hidden md:block'>Staff</p>
-                </NavLink>
-              )}
-      </div>
-    </div>
-  )
-}
-
-export default Sidebar
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Package, ShoppingBag, Store, Users, TicketPercent, RefreshCcw, UserCog, Settings } from 'lucide-react';
+const items=[['/','Overview',LayoutDashboard],['/list','Products',Package],['/orders','Orders',ShoppingBag],['/sellers','Sellers',Store],['/customers','Customers',Users],['/coupons','Coupons',TicketPercent],['/refunds','Refunds',RefreshCcw]];
+export default function Sidebar({isSuperAdmin}){return <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white md:block"><div className="sticky top-0 flex h-screen flex-col p-4"><div className="mb-7 px-3"><div className="text-xl font-extrabold text-slate-950">UrbanStep <span className="text-blue-600">Admin</span></div><p className="mt-1 text-xs text-slate-400">Marketplace control center</p></div><nav className="space-y-1">{items.map(([to,label,Icon])=><NavLink key={to} to={to} end={to==='/'} className={({isActive})=>`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${isActive?'bg-blue-600 text-white shadow-lg shadow-blue-600/20':'text-slate-600 hover:bg-slate-50'}`}><Icon size={18}/>{label}</NavLink>)}{isSuperAdmin&&<NavLink to="/staff" className={({isActive})=>`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${isActive?'bg-blue-600 text-white':'text-slate-600 hover:bg-slate-50'}`}><UserCog size={18}/>Staff</NavLink>}</nav><div className="mt-auto rounded-2xl bg-slate-50 p-4 text-xs text-slate-500"><Settings size={16} className="mb-2"/><p className="font-bold text-slate-700">Operations</p><p className="mt-1">Monitor sellers, customers, payments and disputes from one place.</p></div></div></aside>}

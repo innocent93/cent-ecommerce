@@ -33,6 +33,7 @@ export const PERMISSIONS = Object.freeze({
 
   // Customers (support use: look up a customer's order history, not edit their account)
   CUSTOMER_VIEW: 'customer:view',
+  CUSTOMER_MANAGE: 'customer:manage',
 
   // Staff management — who can create/edit/deactivate other staff accounts.
   // Deliberately superadmin-only: an admin being able to create other admins
@@ -64,6 +65,7 @@ const ADMIN_PERMISSIONS = [
   PERMISSIONS.PRODUCT_MANAGE,
   PERMISSIONS.COUPON_MANAGE,
   PERMISSIONS.SELLER_MANAGE,
+  PERMISSIONS.CUSTOMER_MANAGE,
   PERMISSIONS.PAYOUT_MANAGE,
 ];
 

@@ -24,6 +24,7 @@ import sellerRouter from './routes/seller.routes.js';
 import sellerProductRouter from './routes/sellerProduct.routes.js';
 import sellerOrderRouter from './routes/sellerOrder.routes.js';
 import payoutRouter, { sellerPayoutRouter } from './routes/payout.routes.js';
+import analyticsRouter from './routes/analytics.routes.js';
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use('/api/seller/products', sellerProductRouter);
 app.use('/api/seller/orders', sellerOrderRouter);
 app.use('/api/seller/payouts', sellerPayoutRouter);
 app.use('/api/payouts', payoutRouter);
+app.use('/api/analytics', analyticsRouter);
 
 app.get('/', (req, res) => {
   res.json({ success: true, message: 'E-commerce API is running' });

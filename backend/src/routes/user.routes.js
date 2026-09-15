@@ -24,7 +24,7 @@ import {
   setPreferredCurrency,
   listStaff,
   createStaff,
-  updateStaff,
+  updateStaff, listCustomers, setCustomerBan, softDeleteCustomer, restoreCustomer,
 } from '../controllers/user.controller.js';
 import {
   registerValidator,
@@ -111,6 +111,12 @@ userRouter.patch(
   validate,
   setPreferredCurrency
 );
+
+// --- Customer lifecycle management --------------------------------------
+userRouter.get('/customers', requirePermission(PERMISSIONS.CUSTOMER_VIEW), listCustomers);
+userRouter.patch('/customers/:userId/ban', requirePermission(PERMISSIONS.CUSTOMER_MANAGE), setCustomerBan);
+userRouter.delete('/customers/:userId', requirePermission(PERMISSIONS.CUSTOMER_MANAGE), softDeleteCustomer);
+userRouter.patch('/customers/:userId/restore', requirePermission(PERMISSIONS.CUSTOMER_MANAGE), restoreCustomer);
 
 // --- Staff management (superadmin only) ---
 const canManageStaff = requirePermission(PERMISSIONS.STAFF_MANAGE);

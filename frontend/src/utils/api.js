@@ -4,7 +4,7 @@
 // to on some page, silently logging users out early).
 import axios from 'axios';
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
 export const api = axios.create({
   baseURL: backendUrl,
@@ -60,10 +60,12 @@ api.interceptors.response.use(
           { refreshToken },
           { withCredentials: true }
         );
-        localStorage.setItem('token', data.token);
+        const nextToken = data.accessToken || data.token || data.data?.accessToken || data.data?.token;
+        if (!nextToken) throw new Error('Refresh response did not include an access token');
+        localStorage.setItem('token', nextToken);
         if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-        resolveQueue(null, data.token);
-        originalRequest.headers.Authorization = `Bearer ${data.token}`;
+        resolveQueue(null, nextToken);
+        originalRequest.headers.Authorization = `Bearer ${nextToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         resolveQueue(refreshError, null);

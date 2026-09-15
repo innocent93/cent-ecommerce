@@ -1,25 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react';
+import { ArrowRight, Mail } from 'lucide-react';
 
-const NewsletterBox = () =>
-{
-    const handleSubmit = ( e ) => {
-        e.preventDefault();
-        // NOTE: no backend endpoint exists yet to store newsletter signups —
-        // this intentionally does nothing rather than fake a success toast.
-        // Wiring this up is a small addition (a NewsletterSubscriber model +
-        // one POST route) if you want it before launch.
-    }
-
-  return (
-    <div className='text-center'>
-          <p className='text-2xl font-medium text-gray-800'>Get 10% off your first order</p>
-          <p className='text-gray-400 mt-3'>Sign up for restock alerts, new drops, and subscriber-only discounts. No spam, unsubscribe any time.</p>
-          <form onSubmit={handleSubmit} className='w-full sm:w-1/2 flex items-center gap-3 mx-auto my-6 border pl-3'>
-              <input type="email" placeholder='Enter Your Email' className='w-full sm:flex-1 outline-none' required /> 
-              <button type='submit' className='bg-black text-white text-xs px-10 py-4'>SUBSCRIBE</button>
-          </form>
-    </div>
-  )
+export default function NewsletterBox() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const handleSubmit = (event) => { event.preventDefault(); if (!email.trim()) return; setSubmitted(true); };
+  return <section className="us-shell"><div className="us-newsletter"><div><p className="us-kicker text-[#b9c8ff]">Stay in the loop</p><h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Good style. Delivered.</h2><p className="mt-2 max-w-md text-sm leading-6 text-blue-100">Get first access to new drops, seller spotlights, and subscriber-only offers.</p></div><form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-2 sm:flex-row"><label className="sr-only" htmlFor="newsletter-email">Email address</label><div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl bg-white px-4"><Mail size={17} className="shrink-0 text-slate-400" /><input id="newsletter-email" type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setSubmitted(false); }} placeholder="you@example.com" className="min-w-0 flex-1 py-3 text-sm text-slate-900 outline-none" /></div><button className="us-button bg-white text-[#2446e8]" type="submit">{submitted ? 'You’re in' : 'Subscribe'} <ArrowRight size={17} /></button></form></div></section>;
 }
-
-export default NewsletterBox

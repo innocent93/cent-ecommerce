@@ -9,6 +9,9 @@ import Orders from "./pages/Orders";
 import Refunds from "./pages/Refunds";
 import Coupons from "./pages/Coupons";
 import Staff from "./pages/Staff";
+import Dashboard from "./pages/Dashboard";
+import Sellers from "./pages/Sellers";
+import Customers from "./pages/Customers";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
@@ -46,14 +49,17 @@ const App = () =>
       <div className="flex w-full">
         <Sidebar isSuperAdmin={isSuperAdmin} />
     
-      <div className="w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base">
+      <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 text-slate-600 text-base">
         <Routes>
+      <Route path="/" element={<Dashboard />} />
       <Route path="/add" element={<Add token={token} />} />
       <Route path="/list" element={<List token={token} />} />
       <Route path="/edit/:productId" element={<Edit token={token} />} />
       <Route path="/orders" element={<Orders token={token} />} />
       <Route path="/refunds" element={<Refunds token={token} />} />
       <Route path="/coupons" element={<Coupons token={token} />} />
+      <Route path="/sellers" element={<Sellers />} />
+      <Route path="/customers" element={<Customers />} />
       <Route
         path="/staff"
         element={isSuperAdmin ? <Staff token={token} /> : <Navigate to="/orders" replace />}

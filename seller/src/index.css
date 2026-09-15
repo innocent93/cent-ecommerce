@@ -1,58 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-  html {
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  }
-
-  body {
-    @apply bg-canvas text-ink-500;
-  }
-
-  /* Visible keyboard focus everywhere — never suppressed */
-  :focus-visible {
-    outline: 2px solid theme("colors.ochre.500");
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.001ms !important;
-      transition-duration: 0.001ms !important;
-    }
-  }
-}
-
-@layer components {
-  .ledger-row {
-    @apply flex flex-col gap-1 border-b border-ink-100 py-3 last:border-b-0 sm:grid sm:items-center sm:gap-4;
-  }
-
-  .field-label {
-    @apply mb-1.5 block text-sm text-muted;
-  }
-
-  .field-input {
-    @apply w-full rounded border border-ink-100 bg-paper px-3 py-2 text-[15px] text-ink-600 outline-none transition-colors placeholder:text-ink-200 focus:border-ochre-500;
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded bg-ink-500 px-4 py-2.5 text-sm font-medium text-canvas transition-colors hover:bg-ink-600 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn-ochre {
-    @apply inline-flex items-center justify-center rounded bg-ochre-500 px-4 py-2.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ochre-600 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center rounded border border-ink-100 bg-transparent px-4 py-2.5 text-sm font-medium text-ink-500 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .panel {
-    @apply rounded border border-ink-100 bg-paper;
-  }
-}
+:root{font-family:'DM Sans',Inter,system-ui,sans-serif;color:#0b1220;background:#f6f8fc;font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}body{margin:0;min-width:320px;background:#f6f8fc}button,input,select,textarea{font:inherit}button,a{-webkit-tap-highlight-color:transparent}
+@layer components{.ui-input{width:100%;border:1px solid #dce2ee;border-radius:14px;background:#fff;padding:12px 14px;outline:none;transition:.2s}.ui-input:focus{border-color:#3155e7;box-shadow:0 0 0 4px #3155e71a}.ui-primary{border-radius:999px;background:#3155e7;color:#fff;padding:12px 18px;font-weight:800;box-shadow:0 8px 20px #3155e71f}.ui-primary:hover{background:#203db6}}

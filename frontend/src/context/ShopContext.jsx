@@ -7,7 +7,7 @@ import api from "../utils/api";
 export const ShopContext = createContext();
 
 const ShopContextProvider = ({ children }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
   // NGN is the platform's base/display currency (Nigeria/Africa-first launch).
   // Swap this + the backend's BASE_CURRENCY together if you relaunch in a

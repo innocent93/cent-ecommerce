@@ -116,9 +116,8 @@ const authenticateByEmailPassword = async ({ email, password }, allowedRoles) =>
     throw genericError();
   }
 
-  if (!user.active) {
-    throw ApiError.forbidden('This account has been deactivated. Contact an administrator.');
-  }
+  if (!user.active || user.deletedAt) throw ApiError.forbidden('This account is unavailable. Contact an administrator.');
+  if (user.ban?.isBanned && (!user.ban.expiresAt || user.ban.expiresAt > new Date())) throw ApiError.forbidden(`This account is banned${user.ban.reason ? `: ${user.ban.reason}` : ''}`);
 
   if (isLocked(user)) {
     const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
@@ -203,9 +202,8 @@ export const googleLogin = async (idToken, meta) => {
     }
   }
 
-  if (!user.active) {
-    throw ApiError.forbidden('This account has been deactivated. Contact an administrator.');
-  }
+  if (!user.active || user.deletedAt) throw ApiError.forbidden('This account is unavailable. Contact an administrator.');
+  if (user.ban?.isBanned && (!user.ban.expiresAt || user.ban.expiresAt > new Date())) throw ApiError.forbidden(`This account is banned${user.ban.reason ? `: ${user.ban.reason}` : ''}`);
 
   const accessToken = signAccessToken(user._id, user.role);
   const { rawToken: refreshToken } = await issueRefreshToken(user._id, meta);
@@ -506,6 +504,26 @@ export const seedSuperAdmin = async () => {
     passwordChangedAt: new Date(),
   });
   logger.info({ email }, 'Seeded initial superadmin account from ADMIN_EMAIL/ADMIN_PASSWORD');
+};
+
+
+export const listCustomers = async ({ search, includeDeleted = 'false' } = {}) => {
+  const filter = { role: ROLES.CUSTOMER, ...(includeDeleted === 'true' ? {} : { deletedAt: null }) };
+  if (search) filter.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
+  return User.find(filter).sort({ createdAt: -1 }).select('-password');
+};
+export const setCustomerBan = async (userId, { banned, reason, expiresAt }, adminId) => {
+  const user = await User.findOne({ _id: userId, role: ROLES.CUSTOMER }); if (!user) throw ApiError.notFound('Customer not found');
+  user.ban = { isBanned: Boolean(banned), reason: banned ? reason : undefined, expiresAt: banned && expiresAt ? new Date(expiresAt) : null, bannedAt: banned ? new Date() : null, bannedBy: banned ? adminId : null };
+  if (banned) await revokeAllUserSessions(userId); await user.save(); return user;
+};
+export const softDeleteCustomer = async (userId, adminId) => {
+  const user = await User.findOne({ _id: userId, role: ROLES.CUSTOMER }); if (!user) throw ApiError.notFound('Customer not found');
+  user.active = false; user.deletedAt = new Date(); user.deletedBy = adminId; await revokeAllUserSessions(userId); await user.save(); return user;
+};
+export const restoreCustomer = async (userId) => {
+  const user = await User.findOne({ _id: userId, role: ROLES.CUSTOMER }); if (!user) throw ApiError.notFound('Customer not found');
+  user.active = true; user.deletedAt = null; user.deletedBy = null; await user.save(); return user;
 };
 
 export default {

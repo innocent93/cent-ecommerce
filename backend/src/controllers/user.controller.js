@@ -28,6 +28,7 @@ const toUserPayload = (user) => ({
   role: user.role,
   isEmailVerified: user.isEmailVerified,
   preferredCurrency: user.preferredCurrency,
+  active: user.active, deletedAt: user.deletedAt, banned: Boolean(user.ban?.isBanned), banReason: user.ban?.reason || null,
 });
 
 // POST /api/user/register
@@ -115,7 +116,7 @@ export const getMe = asyncHandler(async (req, res) => {
 export const logoutUser = asyncHandler(async (req, res) => {
   const raw = req.cookies?.refreshToken || req.body?.refreshToken;
   await userService.logout(raw);
-  res.clearCookie('refreshToken', { path: '/api/user' });
+  res.clearCookie('refreshToken', { path: '/api' });
   return sendSuccess(res, { message: 'Logged out successfully' });
 });
 
@@ -123,7 +124,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 // my account was compromised" button).
 export const logoutEverywhere = asyncHandler(async (req, res) => {
   await userService.logoutEverywhere(req.user.id);
-  res.clearCookie('refreshToken', { path: '/api/user' });
+  res.clearCookie('refreshToken', { path: '/api' });
   return sendSuccess(res, { message: 'Logged out of all devices' });
 });
 
@@ -135,7 +136,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
 export const changePassword = asyncHandler(async (req, res) => {
   await userService.changePassword(req.user.id, req.body);
-  res.clearCookie('refreshToken', { path: '/api/user' });
+  res.clearCookie('refreshToken', { path: '/api' });
   return sendSuccess(res, { message: 'Password changed. Please log in again on all devices.' });
 });
 
@@ -218,6 +219,12 @@ export const updateStaff = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Staff account updated', staff: toUserPayload(staff) });
 });
 
+
+export const listCustomers = asyncHandler(async (req, res) => { const customers = await userService.listCustomers(req.query); return sendSuccess(res, { customers: customers.map(toUserPayload) }); });
+export const setCustomerBan = asyncHandler(async (req, res) => { const user = await userService.setCustomerBan(req.params.userId, req.body, req.admin.id); return sendSuccess(res, { message: req.body.banned ? 'Customer banned' : 'Customer unbanned', customer: toUserPayload(user) }); });
+export const softDeleteCustomer = asyncHandler(async (req, res) => { const user = await userService.softDeleteCustomer(req.params.userId, req.admin.id); return sendSuccess(res, { message: 'Customer archived', customer: toUserPayload(user) }); });
+export const restoreCustomer = asyncHandler(async (req, res) => { const user = await userService.restoreCustomer(req.params.userId); return sendSuccess(res, { message: 'Customer restored', customer: toUserPayload(user) }); });
+
 export default {
   registerUser,
   loginUser,
@@ -242,5 +249,5 @@ export default {
   setPreferredCurrency,
   listStaff,
   createStaff,
-  updateStaff,
+  updateStaff, listCustomers, setCustomerBan, softDeleteCustomer, restoreCustomer,
 };

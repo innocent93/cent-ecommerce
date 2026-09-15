@@ -8,6 +8,7 @@ import { ApiError } from '../utils/ApiError.js';
 const storage = multer.memoryStorage();
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+const CERTIFICATE_MIME_TYPES = new Set([...ALLOWED_MIME_TYPES, 'application/pdf']);
 
 const fileFilter = (req, file, cb) => {
   if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
@@ -15,6 +16,8 @@ const fileFilter = (req, file, cb) => {
   }
   cb(null, true);
 };
+
+export const certificateUpload = multer({ storage, fileFilter: (req, file, cb) => CERTIFICATE_MIME_TYPES.has(file.mimetype) ? cb(null, true) : cb(ApiError.badRequest('Certificate must be PDF, JPEG, PNG, WEBP or AVIF')), limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 
 export const upload = multer({
   storage,

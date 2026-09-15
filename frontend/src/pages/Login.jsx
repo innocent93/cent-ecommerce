@@ -1,133 +1,21 @@
-// @ts-nocheck
-import React, { useContext, useEffect, useState } from 'react'
-import { ShopContext } from '../context/ShopContext'
-import api from '../utils/api'
-import { toast } from 'react-toastify'
-import PasswordStrength, { isPasswordValid } from '../components/PasswordStrength'
-import GoogleLoginButton from '../components/GoogleLoginButton'
+import React,{useContext,useEffect,useState} from 'react';
+import {ArrowRight,CheckCircle2,ShieldCheck,Eye,EyeOff} from 'lucide-react';
+import {ShopContext} from '../context/ShopContext';
+import api from '../utils/api';
+import {toast} from 'react-toastify';
+import PasswordStrength,{isPasswordValid} from '../components/PasswordStrength';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
-const Login = () =>
-{
-  const [ currentState, setCurrentState ] = useState( 'Login' )
-  const { token, setToken, navigate } = useContext( ShopContext )
-  const [name,setName] = useState("")
-  const [password,setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [ email, setEmail ] = useState( "" )
-  const [ submitting, setSubmitting ] = useState( false )
-
-  const isSignUp = currentState === 'Sign Up'
-  const passwordMeetsPolicy = isPasswordValid(password)
-  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
-
-  const persistSession = (data) => {
-    setToken( data.token )
-    localStorage.setItem( 'token', data.token )
-    if (data.refreshToken) {
-      localStorage.setItem( 'refreshToken', data.refreshToken )
-    }
-  }
-
-  const onSubmitHandler = async ( event ) =>
-  {
-    event.preventDefault()
-
-    if (isSignUp) {
-      if (!passwordMeetsPolicy) {
-        toast.error('Password must be at least 8 characters with an uppercase letter, a lowercase letter, and a symbol')
-        return
-      }
-      if (!passwordsMatch) {
-        toast.error('Passwords do not match')
-        return
-      }
-    }
-
-    setSubmitting(true)
-
-    try {
-      if (isSignUp) {
-        const response = await api.post( '/api/user/register', { name, email, password } )
-
-        if (response?.data.success) {
-          persistSession(response.data)
-          toast.success(response.data.message)
-          navigate( "/" )
-        } else {
-          toast.error( response?.data.message );
-        }
-      } else {
-        const response = await api.post( '/api/user/login', {  email, password } )
-        if (response.data.success) {
-          persistSession(response.data)
-          toast.success(response.data.message)
-        } else {
-          toast.error(response.data.message);
-        }
-      }
-    } catch (error) {
-      // Account-lockout / rate-limit / password-policy responses carry a
-      // clear message from the API (e.g. "Too many failed attempts...")
-      toast.error(error.response?.data?.message || 'Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  useEffect( () =>
-  {
-     if (token) {
-      navigate("/")
-     }
-  },[token])
-
-  return (
-    <form onSubmit={onSubmitHandler} className='flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800'>
-      <div className='inline-flex items-center gap-2 mb-2 mt-10'>
-        <p className='prate-regular text-3xl'>{currentState }</p>
-       <hr className='border-none h-[1.5px]  w-8 bg-gray-800' />
-      </div>
-      {isSignUp ? <input className='w-full px-3 py-2 border border-gray-800 ' value={name} onChange={(e)=>setName(e.target.value)} type="text" placeholder='Name' required/> : '' }
-
-      <input className='w-full px-3 py-2 border border-gray-800 ' type="email" placeholder='Email' value={email} onChange={(e)=>setEmail(e.target.value)}  required/>
-
-      <input
-        className={`w-full px-3 py-2 border ${isSignUp && password ? (passwordMeetsPolicy ? 'border-green-500' : 'border-gray-800') : 'border-gray-800'}`}
-        type="password"
-        value={password}
-        onChange={(e)=>setPassword(e.target.value)}
-        placeholder={isSignUp ? 'Password (min. 8 characters)' : 'Password'}
-        minLength={8}
-        required
-      />
-      {isSignUp && <PasswordStrength password={password} />}
-
-      {isSignUp && (
-        <>
-          <input
-            className={`w-full px-3 py-2 border ${passwordsMatch ? 'border-green-500' : 'border-gray-800'}`}
-            type="password"
-            value={confirmPassword}
-            onChange={(e)=>setConfirmPassword(e.target.value)}
-            placeholder='Confirm Password'
-            required
-          />
-          {confirmPassword.length > 0 && (
-            <p className={`w-full text-xs -mt-2 ${passwordsMatch ? 'text-green-600' : 'text-red-500'}`}>
-              {passwordsMatch ? '\u2713 Passwords match' : 'Passwords do not match'}
-            </p>
-          )}
-        </>
-      )}
-
-      <div className='w-full flex justify-between text-sm mt-[-8px]'>
-        <p onClick={() => navigate('/forgot-password')} className='cursor-pointer'>Forgot Password?</p>
-       {currentState == 'Login' ? <p onClick={() => setCurrentState('Sign Up')} className='cursor-pointer'>Create Account</p> : <p onClick={() => setCurrentState('Login')} className='cursor-pointer'>Login Here</p> }
-      </div>
-      <button disabled={submitting} className='bg-black text-white font-light px-8 py-2 mt-4 disabled:opacity-50'>{submitting ? 'Please wait...' : (currentState === 'Login' ? 'Sign In' : 'Sign Up') }</button>
-      <GoogleLoginButton />
-    </form>
-  )
+export default function Login(){
+ const [mode,setMode]=useState('login'); const [show,setShow]=useState(false); const [name,setName]=useState(''); const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [confirm,setConfirm]=useState(''); const [loading,setLoading]=useState(false);
+ const {token,setToken,navigate}=useContext(ShopContext); const signup=mode==='signup';
+ const persist=(data)=>{const access=data.accessToken||data.token||data.data?.accessToken||data.data?.token; if(!access)throw new Error('The server did not return an access token. Check the API response.'); setToken(access); localStorage.setItem('token',access); const refresh=data.refreshToken||data.data?.refreshToken; if(refresh)localStorage.setItem('refreshToken',refresh)};
+ useEffect(()=>{if(token)navigate('/')},[token,navigate]);
+ async function submit(e){e.preventDefault(); if(signup&&(!isPasswordValid(password)||password!==confirm)){toast.error(password!==confirm?'Passwords do not match':'Use a stronger password');return} setLoading(true); try{const {data}=await api.post(signup?'/api/user/register':'/api/user/login',signup?{name,email,password}:{email,password}); if(!data.success)throw new Error(data.message||'Authentication failed'); persist(data);toast.success(data.message||'Welcome to UrbanStep');navigate('/')}catch(err){toast.error(err.response?.data?.message||err.message||'Unable to sign in')}finally{setLoading(false)}}
+ return <main className="us-shell grid min-h-[calc(100vh-76px)] items-center gap-10 py-10 lg:grid-cols-[1.05fr_.95fr]">
+  <section className="hidden overflow-hidden rounded-[32px] bg-[#142b91] p-10 text-white lg:block"><div className="mb-20 flex items-center gap-2 text-sm font-semibold text-blue-100"><ShieldCheck size={18}/> Secure shopping, thoughtfully designed</div><h1 className="max-w-lg text-5xl font-extrabold leading-[1.05]">Your next favorite look is waiting.</h1><p className="mt-5 max-w-md text-blue-100">Discover expressive fashion from trusted sellers, with a seamless checkout and a marketplace built around you.</p><div className="mt-12 space-y-4 text-sm text-blue-50"><p className="flex items-center gap-3"><CheckCircle2 size={18}/> Curated fashion from independent sellers</p><p className="flex items-center gap-3"><CheckCircle2 size={18}/> Secure account and order tracking</p><p className="flex items-center gap-3"><CheckCircle2 size={18}/> One basket, many possibilities</p></div></section>
+  <section className="us-panel mx-auto w-full max-w-xl p-6 sm:p-10"><div className="mb-8"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] text-[#2446e8]">UrbanStep account</span><h2 className="mt-4 text-3xl font-extrabold tracking-tight">{signup?'Create your account':'Welcome back'}</h2><p className="mt-2 text-sm text-slate-500">{signup?'Join the community shaping everyday style.':'Sign in to continue your shopping journey.'}</p></div>
+   <form onSubmit={submit} className="space-y-4">{signup&&<label className="block text-sm font-semibold">Full name<input className="us-input mt-2" value={name} onChange={e=>setName(e.target.value)} required placeholder="Your name"/></label>}<label className="block text-sm font-semibold">Email address<input className="us-input mt-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@example.com"/></label><label className="block text-sm font-semibold">Password<div className="relative mt-2"><input className="us-input pr-12" type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} placeholder="Enter your password"/><button type="button" onClick={()=>setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">{show?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>{signup&&<><PasswordStrength password={password}/><label className="block text-sm font-semibold">Confirm password<input className="us-input mt-2" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} required placeholder="Repeat your password"/></label></>} {!signup&&<div className="text-right"><button type="button" onClick={()=>navigate('/forgot-password')} className="text-sm font-semibold text-[#2446e8]">Forgot password?</button></div>}<button disabled={loading} className="us-button us-button-primary w-full disabled:cursor-not-allowed disabled:opacity-60">{loading?'Please wait…':signup?'Create account':'Sign in'}<ArrowRight size={18}/></button></form>
+   <div className="my-6 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200"/>OR<span className="h-px flex-1 bg-slate-200"/></div><GoogleLoginButton/><p className="mt-7 text-center text-sm text-slate-500">{signup?'Already have an account?':'New to UrbanStep?'} <button onClick={()=>setMode(signup?'login':'signup')} className="font-bold text-[#2446e8]">{signup?'Sign in':'Create an account'}</button></p>
+  </section></main>
 }
-
-export default Login

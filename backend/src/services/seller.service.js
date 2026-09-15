@@ -15,6 +15,17 @@ import {
   revokeAllUserSessions,
 } from './token.service.js';
 import * as paystackService from './paystack.service.js';
+import { cloudinary } from '../db/cloudinary.js';
+
+
+const uploadCertificate = (file) => new Promise((resolve, reject) => {
+  if (!file) return resolve(null);
+  const stream = cloudinary.uploader.upload_stream({ folder: 'urbanstep/seller-certificates', resource_type: 'auto' }, (error, result) => {
+    if (error) return reject(error);
+    resolve({ url: result.secure_url, publicId: result.public_id });
+  });
+  stream.end(file.buffer);
+});
 
 const hashPassword = async (password) => bcrypt.hash(password, await bcrypt.genSalt(12));
 
@@ -51,7 +62,7 @@ const verifyGoogleIdToken = async (idToken) => {
 
 // --- Seller auth (own login, separate from customers/staff) --------------
 
-export const register = async ({ businessName, ownerName, email, password, phone, googleIdToken }) => {
+export const register = async ({ businessName, ownerName, email, password, phone, googleIdToken }, certificateFile = null) => {
   let googlePayload;
   if (googleIdToken) {
     // Google has already verified this email cryptographically — trust it
@@ -68,6 +79,8 @@ export const register = async ({ businessName, ownerName, email, password, phone
   const exists = await Seller.findOne({ email: resolved.email });
   if (exists) throw ApiError.conflict('A seller account with this email already exists');
 
+  const certificate = await uploadCertificate(certificateFile);
+
   const seller = await Seller.create({
     businessName: resolved.businessName,
     ownerName: resolved.ownerName,
@@ -76,6 +89,7 @@ export const register = async ({ businessName, ownerName, email, password, phone
     ...(resolved.authFields || { password: await hashPassword(password) }),
     status: 'pending',
     passwordChangedAt: new Date(),
+    ...(certificate ? { businessCertificate: { ...certificate, originalName: certificateFile.originalname, mimeType: certificateFile.mimetype, uploadedAt: new Date() } } : {}),
   });
 
   logger.info({ sellerId: seller._id.toString() }, 'New seller registered, pending approval');
@@ -90,6 +104,8 @@ export const login = async ({ email, password }, meta) => {
     await bcrypt.compare(password, '$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsalt');
     throw genericError();
   }
+  if (seller.deletedAt) throw ApiError.forbidden('This seller account is archived. Contact support.');
+  if (seller.ban?.isBanned && (!seller.ban.expiresAt || seller.ban.expiresAt > new Date())) throw ApiError.forbidden(`Your seller account is banned${seller.ban.reason ? `: ${seller.ban.reason}` : ''}`);
   if (seller.status === 'suspended') {
     throw ApiError.forbidden('Your seller account has been suspended. Contact support.');
   }
@@ -154,6 +170,8 @@ export const googleLogin = async (idToken, meta) => {
     await seller.save();
   }
 
+  if (seller.deletedAt) throw ApiError.forbidden('This seller account is archived. Contact support.');
+  if (seller.ban?.isBanned && (!seller.ban.expiresAt || seller.ban.expiresAt > new Date())) throw ApiError.forbidden(`Your seller account is banned${seller.ban.reason ? `: ${seller.ban.reason}` : ''}`);
   if (seller.status === 'suspended') {
     throw ApiError.forbidden('Your seller account has been suspended. Contact support.');
   }
@@ -199,18 +217,18 @@ export const updateBankDetails = async (sellerId, { accountNumber, bankCode, acc
 
 // --- Admin management (PERMISSIONS.SELLER_MANAGE) -------------------------
 
-export const listSellers = ({ status } = {}) => {
-  const filter = {};
+export const listSellers = ({ status, includeDeleted = 'false' } = {}) => {
+  const filter = includeDeleted === 'true' ? {} : { deletedAt: null };
   if (status) filter.status = status;
   return Seller.find(filter).sort({ createdAt: -1 });
 };
 
 export const setSellerStatus = async (sellerId, status, log) => {
-  if (!['pending', 'approved', 'suspended'].includes(status)) {
-    throw ApiError.badRequest('Invalid status');
-  }
+  if (!['pending', 'approved', 'suspended'].includes(status)) throw ApiError.badRequest('Invalid status');
+  const existing = await Seller.findById(sellerId);
+  if (!existing) throw ApiError.notFound('Seller not found');
+  if (status === 'approved' && !existing.businessCertificate?.url) throw ApiError.badRequest('Seller must upload a business certificate before approval');
   const seller = await Seller.findByIdAndUpdate(sellerId, { status }, { new: true });
-  if (!seller) throw ApiError.notFound('Seller not found');
 
   if (status === 'suspended') {
     // Kill their active sessions immediately, same pattern as staff
@@ -222,6 +240,30 @@ export const setSellerStatus = async (sellerId, status, log) => {
   return seller;
 };
 
+
+export const uploadBusinessCertificate = async (sellerId, file) => {
+  if (!file) throw ApiError.badRequest('Certificate file is required');
+  const certificate = await uploadCertificate(file);
+  const seller = await Seller.findByIdAndUpdate(sellerId, { businessCertificate: { ...certificate, originalName: file.originalname, mimeType: file.mimetype, uploadedAt: new Date() } }, { new: true });
+  if (!seller) throw ApiError.notFound('Seller not found');
+  return seller;
+};
+
+export const softDeleteSeller = async (sellerId, adminId) => {
+  const seller = await Seller.findById(sellerId); if (!seller) throw ApiError.notFound('Seller not found');
+  seller.deletedAt = new Date(); seller.deletedBy = adminId; seller.status = 'suspended'; await seller.save(); await revokeAllUserSessions(sellerId); return seller;
+};
+export const restoreSeller = async (sellerId) => {
+  const seller = await Seller.findById(sellerId); if (!seller) throw ApiError.notFound('Seller not found');
+  seller.deletedAt = null; seller.deletedBy = null; seller.status = 'pending'; await seller.save(); return seller;
+};
+export const setSellerBan = async (sellerId, { banned, reason, expiresAt }, adminId) => {
+  const seller = await Seller.findById(sellerId); if (!seller) throw ApiError.notFound('Seller not found');
+  seller.ban = { isBanned: Boolean(banned), reason: banned ? reason : undefined, expiresAt: banned && expiresAt ? new Date(expiresAt) : null, bannedAt: banned ? new Date() : null, bannedBy: banned ? adminId : null };
+  if (banned) { seller.status = 'suspended'; await revokeAllUserSessions(sellerId); }
+  await seller.save(); return seller;
+};
+
 export default {
   register,
   login,
@@ -231,4 +273,5 @@ export default {
   updateBankDetails,
   listSellers,
   setSellerStatus,
+  uploadBusinessCertificate, softDeleteSeller, restoreSeller, setSellerBan,
 };

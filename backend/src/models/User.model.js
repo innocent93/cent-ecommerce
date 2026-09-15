@@ -65,7 +65,10 @@ const userSchema = new mongoose.Schema(
     // without losing the audit trail of what they did) and, if ever needed,
     // for customers (fraud holds) without breaking every Order/Review
     // document's `user` reference.
-    active: { type: Boolean, default: true },
+    active: { type: Boolean, default: true, index: true },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    ban: { isBanned: { type: Boolean, default: false, index: true }, reason: { type: String, trim: true, maxlength: 500 }, expiresAt: { type: Date, default: null }, bannedAt: { type: Date, default: null }, bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null } },
 
     cartData: {
       type: Object,

@@ -19,6 +19,7 @@ const Register = ({ onAuthenticated }) => {
     email: location.state?.prefill?.email || "",
   }));
   const [submitting, setSubmitting] = useState(false);
+  const [certificate, setCertificate] = useState(null);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -26,10 +27,10 @@ const Register = ({ onAuthenticated }) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = google
-        ? { businessName: form.businessName, ownerName: form.ownerName, phone: form.phone, googleIdToken: google.idToken }
-        : form;
-      const { data } = await api.post("/api/seller/register", payload);
+      const payload = new FormData();
+      Object.entries(google ? { businessName: form.businessName, ownerName: form.ownerName, phone: form.phone, googleIdToken: google.idToken } : form).forEach(([k,v]) => payload.append(k,v));
+      if (certificate) payload.append("businessCertificate", certificate);
+      const { data } = await api.post("/api/seller/register", payload, { headers: { "Content-Type": "multipart/form-data" } });
       if (!data.success) {
         toast.error(data.message);
         return;
@@ -84,6 +85,11 @@ const Register = ({ onAuthenticated }) => {
               <input id="email" type="email" required className="field-input" value={form.email} onChange={update("email")} />
             </div>
           )}
+          <div>
+            <label className="field-label" htmlFor="businessCertificate">Business certificate <span className="text-muted">(optional now, required for approval)</span></label>
+            <input id="businessCertificate" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/avif" className="field-input" onChange={(e) => { const file=e.target.files?.[0]; if(file && file.size>5*1024*1024){ toast.error("Certificate must be 5MB or smaller"); e.target.value=""; setCertificate(null); } else setCertificate(file||null); }} />
+            <p className="mt-1 text-xs text-muted">PDF, JPG, PNG or WEBP · maximum 5MB. You can also upload it later from your dashboard.</p>
+          </div>
           <div>
             <label className="field-label" htmlFor="phone">Phone number</label>
             <input id="phone" className="field-input" value={form.phone} onChange={update("phone")} placeholder="Optional" />

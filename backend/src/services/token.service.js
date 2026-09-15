@@ -99,7 +99,7 @@ export const refreshCookieOptions = () => ({
   secure: config.isProduction,
   sameSite: 'strict',
   domain: config.cookieDomain || undefined,
-  path: '/api/user',
+  path: '/api',
   maxAge: ms(config.jwt.refreshExpiresIn),
 });
 

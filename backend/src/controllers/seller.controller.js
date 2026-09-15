@@ -14,10 +14,12 @@ const toSellerPayload = (seller) => ({
   phone: seller.phone,
   status: seller.status,
   hasBankDetails: Boolean(seller.paystackRecipientCode),
+  certificate: seller.businessCertificate?.url ? { url: seller.businessCertificate.url, originalName: seller.businessCertificate.originalName, mimeType: seller.businessCertificate.mimeType, uploadedAt: seller.businessCertificate.uploadedAt } : null,
+  deletedAt: seller.deletedAt, banned: Boolean(seller.ban?.isBanned), banReason: seller.ban?.reason || null,
 });
 
 export const registerSeller = asyncHandler(async (req, res) => {
-  const seller = await sellerService.register(req.body);
+  const seller = await sellerService.register(req.body, req.file);
   return sendSuccess(res, {
     statusCode: 201,
     message: 'Seller account created — pending admin approval before you can list products',
@@ -69,6 +71,8 @@ export const getSellerProfile = asyncHandler(async (req, res) => {
   return sendSuccess(res, { seller: toSellerPayload(seller) });
 });
 
+export const uploadCertificate = asyncHandler(async (req, res) => { const seller = await sellerService.uploadBusinessCertificate(req.seller.id, req.file); return sendSuccess(res, { message: 'Business certificate uploaded', seller: toSellerPayload(seller) }); });
+
 export const updateBankDetails = asyncHandler(async (req, res) => {
   const seller = await sellerService.updateBankDetails(req.seller.id, req.body);
   return sendSuccess(res, { message: 'Bank details saved', seller: toSellerPayload(seller) });
@@ -79,6 +83,10 @@ export const listSellers = asyncHandler(async (req, res) => {
   const sellers = await sellerService.listSellers(req.query);
   return sendSuccess(res, { sellers: sellers.map(toSellerPayload) });
 });
+
+export const softDeleteSeller = asyncHandler(async (req, res) => { const seller = await sellerService.softDeleteSeller(req.params.sellerId, req.admin.id); return sendSuccess(res, { message: 'Seller archived', seller: toSellerPayload(seller) }); });
+export const restoreSeller = asyncHandler(async (req, res) => { const seller = await sellerService.restoreSeller(req.params.sellerId); return sendSuccess(res, { message: 'Seller restored to pending review', seller: toSellerPayload(seller) }); });
+export const setSellerBan = asyncHandler(async (req, res) => { const seller = await sellerService.setSellerBan(req.params.sellerId, req.body, req.admin.id); return sendSuccess(res, { message: req.body.banned ? 'Seller banned' : 'Seller unbanned', seller: toSellerPayload(seller) }); });
 
 export const setSellerStatus = asyncHandler(async (req, res) => {
   const seller = await sellerService.setSellerStatus(req.params.sellerId, req.body.status, req.log);
@@ -93,5 +101,5 @@ export default {
   getSellerProfile,
   updateBankDetails,
   listSellers,
-  setSellerStatus,
+  setSellerStatus, uploadCertificate, softDeleteSeller, restoreSeller, setSellerBan,
 };

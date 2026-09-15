@@ -10,6 +10,8 @@ const productSchema = new mongoose.Schema(
     // query below explicitly filters `seller: null` for "platform-owned"
     // products rather than assuming every product has an owner.
     seller: { type: mongoose.Schema.Types.ObjectId, ref: 'Seller', default: null, index: true },
+    deletedAt: { type: Date, default: null, index: true },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     name: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
 

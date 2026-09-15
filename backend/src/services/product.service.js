@@ -102,6 +102,7 @@ export const listProducts = async (query) => {
   if (gender) filter.gender = gender;
   if (bestseller !== undefined) filter.bestseller = bestseller === 'true';
   if (search) filter.$text = { $search: search };
+  if (filter.deletedAt === undefined) filter.deletedAt = null;
 
   const applyCurrency = (products) => (currency ? products.map((p) => withConvertedPrice(p, currency)) : products);
 
@@ -143,7 +144,9 @@ export const removeProduct = async (id, ownerSellerId = null) => {
   if (ownerSellerId && String(product.seller) !== String(ownerSellerId)) {
     throw ApiError.forbidden('You can only remove your own products');
   }
-  await product.deleteOne();
+  product.deletedAt = new Date();
+  product.deletedBy = ownerSellerId || null;
+  await product.save();
   await invalidateByPrefix(PRODUCT_CACHE_PREFIX);
   return product;
 };
@@ -216,7 +219,7 @@ export const getProductById = async (productId, currency) => {
 // Seller-scoped listing — a seller's own dashboard. Deliberately not
 // cached via the shared products: cache (low volume per seller, and
 // caching would need per-seller invalidation for no real benefit here).
-export const listSellerProducts = (sellerId) => Product.find({ seller: sellerId }).sort({ createdAt: -1 });
+export const listSellerProducts = (sellerId) => Product.find({ seller: sellerId, deletedAt: null }).sort({ createdAt: -1 });
 
 export default {
   createProduct,
